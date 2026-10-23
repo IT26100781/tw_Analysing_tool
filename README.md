@@ -1,4 +1,6 @@
 #to run
 
-```bash pip install pandas matplotlib scipy
-python analyze_survey.py "responses.csv"```
+```bash
+pip install pandas matplotlib scipy
+python analyze_survey.py "responses.csv"
+```
