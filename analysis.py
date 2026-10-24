@@ -13,12 +13,14 @@ Analysis) of the report:
   4. Builds cross-tabulations between key variables.
   5. Tests associations between ordered variables with Spearman's rank
      correlation.
-  6. Produces the figures used in the report (Matplotlib).
+  6. Produces the two cross-tabulation figures used in the report
+     (Figure 9 and Figure 10) with Matplotlib. All other figures in the
+     report are the charts generated automatically by Google Forms.
   7. Exports the open-ended answers (Q23-Q25) so they can be grouped into
      themes by hand.
 
 Requirements:  pip install pandas matplotlib scipy
-Usage:         python analyze_survey.py "path/to/responses.csv"
+Usage:         python analysis.py "path/to/responses.csv"
                (if no path is given, the first .csv in the current folder is used)
 Output:        an "output" folder containing figures/, tables/ and summary.txt
 """
@@ -98,7 +100,6 @@ SHORT_LABELS = {
 }
 
 # Chart colours
-BLUE = "#2a78d6"
 IMPACT_COLOURS = ["#2a78d6", "#a8a8a3", "#f4a07a", "#c4471a"]   # positive -> significant negative
 YES_MAYBE_NO = ["#c4471a", "#f4a07a", "#2a78d6"]
 
@@ -172,21 +173,6 @@ plt.rcParams.update({
 })
 
 
-def bar_chart(table, n, filename, colours=None):
-    """Horizontal bar chart showing count and percentage for each answer."""
-    counts = table["Frequency"]
-    labels = [SHORT_LABELS.get(i, i) for i in counts.index]
-    fig, ax = plt.subplots(figsize=(6.5, 0.36 * len(counts) + 0.8))
-    bars = ax.barh(labels[::-1], counts.values[::-1], color=(colours[::-1] if colours else BLUE), height=0.6)
-    for bar, v in zip(bars, counts.values[::-1]):
-        ax.text(v + 0.3, bar.get_y() + bar.get_height() / 2, f"{int(v)} ({v / n * 100:.0f}%)", va="center", fontsize=10)
-    ax.set_xlabel("Number of respondents")
-    ax.set_xlim(0, counts.max() * 1.3)
-    ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-    ax.grid(axis="x", color="#e5e5e5"); ax.set_axisbelow(True)
-    fig.tight_layout(); fig.savefig(os.path.join(FIG_DIR, filename), dpi=200); plt.close(fig)
-
-
 def stacked_chart(df, row_q, col_q, colours, filename, ylabel, legend_labels=None):
     """Stacked bar chart of a cross-tabulation (every respondent is counted once)."""
     table = cross_tab(df, row_q, col_q).drop(index="Total", columns="Total")
@@ -221,7 +207,7 @@ def main():
     else:
         files = glob.glob("*.csv")
         if not files:
-            sys.exit("No CSV file found. Usage: python analyze_survey.py responses.csv")
+            sys.exit("No CSV file found. Usage: python analysis.py responses.csv")
         path = files[0]
 
     os.makedirs(FIG_DIR, exist_ok=True)
@@ -274,19 +260,11 @@ def main():
         verdict = "significant" if p < 0.05 else "not significant"
         lines.append(f"{QUESTION_NAMES[q_a]} vs {QUESTION_NAMES[q_b]}: rho = {rho:.2f}, p = {p:.3f}, n = {k}  -> {verdict}")
 
-    # --- Figures used in the report -------------------------------------------
-    bar_chart(tables["q5"], n, "fig01_platforms.png")
-    bar_chart(tables["q6"], n, "fig02_daily_hours.png")
-    bar_chart(tables["q7"], n, "fig03_check_frequency.png")
-    bar_chart(tables["q8"].sort_values("Frequency", ascending=False), n, "fig04_reasons.png")
-    bar_chart(tables["q9"].sort_values("Frequency", ascending=False), n, "fig05_triggers.png")
-    bar_chart(tables["q11"], n, "fig06_phone_placement.png")
-    bar_chart(tables["q13"], n, "fig07_time_to_refocus.png")
-    bar_chart(tables["q15"], n, "fig08_perceived_effect.png", colours=IMPACT_COLOURS)
-    stacked_chart(df, "q6", "q15", IMPACT_COLOURS, "fig09_hours_vs_effect.png", "Daily social media use")
-    stacked_chart(df, "q13", "q16", YES_MAYBE_NO, "fig10_refocus_vs_results.png", "Time to refocus",
+    # --- Cross-tabulation figures (Figure 9 and Figure 10 in the report) -------
+    # The other figures in the report are Google Forms' own charts.
+    stacked_chart(df, "q6", "q15", IMPACT_COLOURS, "figure09_hours_vs_effect.png", "Daily social media use")
+    stacked_chart(df, "q13", "q16", YES_MAYBE_NO, "figure10_refocus_vs_results.png", "Time to refocus",
                   legend_labels={"Yes": "Yes, results have suffered"})
-    bar_chart(tables["q22"].sort_values("Frequency", ascending=False), n, "fig11_strategies.png")
 
     # --- Open-ended answers (grouped into themes by hand) ---------------------
     with open(os.path.join(OUT_DIR, "open_ended_answers.txt"), "w", encoding="utf-8") as f:
