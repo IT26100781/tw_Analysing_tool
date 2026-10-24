@@ -2,5 +2,5 @@
 
 ```bash
 pip install pandas matplotlib scipy
-python analyze_survey.py "responses.csv"
+python analysis.py "responses.csv"
 ```
